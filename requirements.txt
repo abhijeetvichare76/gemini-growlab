@@ -1,0 +1,12 @@
+google-genai
+python-dotenv
+tinytuya
+adafruit-circuitpython-dht
+adafruit-blinka
+google-generativeai
+schedule
+opencv-python-headless
+adafruit-circuitpython-ads1x15
+adafruit-circuitpython-motorkit
+matplotlib
+pandas
