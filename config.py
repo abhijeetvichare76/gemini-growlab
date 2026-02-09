@@ -60,6 +60,7 @@ DPS_LIGHT = "1"
 DPS_AIR_PUMP = "2"
 DPS_HUMIDIFIER = "3"
 TUYA_COMMAND_DELAY = 0.5  # Seconds between plug commands
+HUMIDIFIER_DURATION_SECONDS = 300  # 5 minutes
 
 # =============================================================================
 # DOSING PUMPS
@@ -106,6 +107,6 @@ IDEAL_RANGES = {
     "air_temp_c": {"min": 20, "max": 28, "unit": "C"},
     "humidity_pct": {"min": 40, "max": 70, "unit": "%"},
     "water_temp_c": {"min": 18, "max": 24, "unit": "C"},
-    "ph": {"min": 5.5, "max": 6.5, "unit": ""},
-    "tds_ppm": {"min": 560, "max": 840, "unit": "ppm"},
+    "ph": {"min": 3.5, "max": 6.5, "unit": ""},
+    "tds_ppm": {"min": 100, "max": 840, "unit": "ppm"},
 }

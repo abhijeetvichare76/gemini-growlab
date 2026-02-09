@@ -38,7 +38,7 @@ RESPONSE_SCHEMA = {
             "required": ["overall", "light_reason", "air_pump_reason",
                          "humidifier_reason", "ph_reason"],
         },
-        "plant_health_score": {"type": "integer"},
+        "plant_health_score": {"type": "integer", "minimum": 0, "maximum": 10},
         "human_intervention": {
             "type": "object",
             "properties": {
@@ -141,6 +141,8 @@ def _build_prompt(readings, past_decisions):
 ## Decision Guidelines
 - Follow the 16h/8h light schedule based on current time
 - Air pump should generally stay ON for oxygenation unless there's a specific reason to turn it off
+- The air temperature can also be controlled by the light. The light can sometimes cause the temperature to rise, so take that into consideration when making decisions about the light.
+- High humidity can make temperatures feel hotter and trap heat, while lower humidity allows for better transpiration and cooling, with dehumidifiers and proper ventilation serving as key tools to manage this relationship. 
 - Only activate humidifier if humidity is significantly below range
 - pH adjustment: ONLY dose if pH is more than 0.5 outside the ideal range. Never dose when pH sensor reads N/A
 - If any sensor reads N/A, note it in reasoning and be conservative with that parameter
@@ -171,6 +173,8 @@ A photo of the plant is attached. Consider visible plant health in your assessme
 
 ## Response
 Analyze the current conditions and photo, then decide what actions to take. Explain each decision individually.
+
+**Important**: Provide a `plant_health_score` from 0-10 (where 0 = critical/dying, 5 = fair/acceptable, 10 = excellent/thriving) based on the sensor readings and visual plant health in the photo.
 """
 
     return prompt

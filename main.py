@@ -21,9 +21,11 @@ import logging
 import os
 import sys
 from datetime import datetime
+import time
 
 import config
 import data_store
+from supabase_uploader import upload_decision
 
 # ---- Logging setup ----
 data_store.ensure_data_dirs()
@@ -50,6 +52,14 @@ def run():
     try:
         from sensors import read_all_sensors
         readings = read_all_sensors()
+
+        # Sanitize pH for Gemini / Safety
+        # If pH is None (sensor error/out of hardware range) or extreme, default to 6.0
+        # so Gemini sees a "perfect" value and takes no action.
+        if readings.ph is None or not (config.PH_MIN <= readings.ph <= config.PH_MAX):
+            logger.warning("pH value %s out of normal range. Defaulting to 6.0.", readings.ph)
+            readings.ph = 6.0
+
         logger.info("Sensors: air=%.2f C, humidity=%.2f%%, water=%.2f C, pH=%.2f, TDS=%.0f ppm",
                      readings.air_temp_c or 0, readings.humidity_pct or 0,
                      readings.water_temp_c or 0, readings.ph or 0, readings.tds_ppm or 0)
@@ -58,6 +68,8 @@ def run():
         # Create a minimal readings object with Nones
         from sensors import SensorReadings
         readings = SensorReadings(timestamp=datetime.now().isoformat())
+        # Also default pH here just in case
+        readings.ph = 6.0
 
     # --- Step 2: Store sensor data in CSV ---
     logger.info("Step 2: Storing sensor data...")
@@ -121,17 +133,40 @@ def run():
     except Exception as e:
         logger.error("Decision storage failed: %s", e)
 
+    # --- Step 6b: Upload to Supabase ---
+    logger.info("Step 6b: Uploading to Supabase...")
+    try:
+        upload_decision(decision, readings, photo_path)
+    except Exception as e:
+        logger.error("Supabase upload failed: %s", e)
+
     # --- Step 7: Execute actions ---
     logger.info("Step 7: Executing actions...")
 
     # Smart plugs
     try:
         from actuators import set_smart_plugs
+        humidifier_state = decision.get("humidifier", "off")
+
         set_smart_plugs(
             light=decision.get("light", "on"),
             air_pump=decision.get("air_pump", "on"),
-            humidifier=decision.get("humidifier", "off"),
+            humidifier=humidifier_state,
         )
+
+        # If humidifier is ON, run it for 5 minutes then turn off
+        if humidifier_state == "on":
+            duration = config.HUMIDIFIER_DURATION_SECONDS
+            logger.info("Humidifier is ON. Keeping it ON for %d seconds...", duration)
+            time.sleep(duration)
+
+            # Turn humidifier OFF, keep others in their decided state
+            logger.info("Humidifier timer finished. Turning Humidifier OFF.")
+            set_smart_plugs(
+                light=decision.get("light", "on"),
+                air_pump=decision.get("air_pump", "on"),
+                humidifier="off",
+            )
     except Exception as e:
         logger.error("Smart plug control failed: %s", e)
 

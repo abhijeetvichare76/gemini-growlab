@@ -10,3 +10,5 @@ adafruit-circuitpython-ads1x15
 adafruit-circuitpython-motorkit
 matplotlib
 pandas
+psycopg2-binary
+supabase
